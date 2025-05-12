@@ -107,7 +107,7 @@ def main(from_pinterest: bool) -> None:
     encoder = src.encoder.FashionCLIPEncoder()
 
     index, n, n_success = 0, 0, 0
-    n_pc_success, n_spb_success = 0, 0
+    n_pc_success, n_spb_success, success_rate = 0, 0, 0
 
     while True:
         input_pins = fetch_pins(from_pinterest)
@@ -137,12 +137,13 @@ def main(from_pinterest: bool) -> None:
 
                 batch_ix += 1
                 output_pins, images = [], []
+                success_rate = n_success / n
             
             loop.set_description(
                 f"Index: {index} | "
                 f"Batch: {batch_ix} | "
                 f"Processed: {n} | "
-                f"Success rate: {n_success / n:.2f} | "
+                f"Success rate: {success_rate:.2f} | "
                 f"Pinecone: {n_pc_success} | "
                 f"Supabase: {n_spb_success}"
             )
