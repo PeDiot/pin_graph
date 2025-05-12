@@ -1,0 +1,6 @@
+GCP_PROJECT_ID = "recove-450509"
+GCP_DATASET_ID = "supabase"
+GCP_TABLE_ID_BOARD = "board"
+GCP_TABLE_ID_PIN = "pin"
+GCP_TABLE_ID_BOARD_PROCESSED = "board_processed"
+GCP_TABLE_ID_PIN_PROCESSED = "pin_processed"
