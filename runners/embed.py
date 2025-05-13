@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append("../")
 
 
@@ -19,10 +20,7 @@ def parse_args() -> bool:
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--from-pinterest",
-        "-fp",  
-        type = lambda x: x.lower() == "true",
-        required=True
+        "--from-pinterest", "-fp", type=lambda x: x.lower() == "true", required=True
     )
 
     args = parser.parse_args()
@@ -44,7 +42,7 @@ def initialize_clients(from_pinterest: bool):
     spb_client = src.supabase.init_client(**spb_kwargs)
 
     spb_kwargs["schema"] = src.enums.SUPABASE_SCHEMA_ID_RAW
-    spb_client_raw = src.supabase.init_client(**spb_kwargs)    
+    spb_client_raw = src.supabase.init_client(**spb_kwargs)
 
     pc_client = Pinecone(api_key=secrets.get("PINECONE_API_KEY"))
     pc_index = pc_client.Index(src.enums.PINECONE_INDEX_NAME)
@@ -52,15 +50,14 @@ def initialize_clients(from_pinterest: bool):
     return spb_client, spb_client_raw, pc_index
 
 
-def fetch_pins(from_pinterest: bool) -> List[Dict]: 
+def fetch_pins(from_pinterest: bool) -> List[Dict]:
     query = src.queries.make_supabase_pin_query(
-        from_pinterest=from_pinterest, 
-        n=src.enums.supabase.SUPABASE_BATCH_SIZE
+        from_pinterest=from_pinterest, n=src.enums.supabase.SUPABASE_BATCH_SIZE
     )
 
     kwargs = {
-        "fn": src.enums.supabase.SUPABASE_RPC_ID_GET_PINS, 
-        "params": {"query": query}
+        "fn": src.enums.supabase.SUPABASE_RPC_ID_GET_PINS,
+        "params": {"query": query},
     }
 
     response = spb_client.rpc(**kwargs).execute()
@@ -73,15 +70,10 @@ def process_batch(pins: List[src.models.Pin], images: List[Image.Image]):
     pin_vectors, vectors = [], []
 
     for pin, embedding in zip(pins, embeddings):
-        vector = src.models.Vector(
-            values=embedding, 
-            metadata=pin.to_dict()
-        )
+        vector = src.models.Vector(values=embedding, metadata=pin.to_dict())
 
         pin_vector = src.models.PinVector(
-            user_id=pin.user_id,
-            pin_id=pin.id,
-            point_id=vector.id
+            user_id=pin.user_id, pin_id=pin.id, point_id=vector.id
         )
 
         pin_vectors.append(pin_vector.to_dict())
@@ -92,9 +84,9 @@ def process_batch(pins: List[src.models.Pin], images: List[Image.Image]):
 
     if pc_success:
         spb_success = src.supabase.insert(
-            client=spb_client_raw, 
+            client=spb_client_raw,
             table_id=src.enums.supabase.SUPABASE_TABLE_ID_PIN_VECTOR,
-            rows=pin_vectors
+            rows=pin_vectors,
         )
 
     return pc_success, spb_success
@@ -114,10 +106,10 @@ def main(from_pinterest: bool) -> None:
 
         if len(input_pins) == 0:
             return
-        
+
         batch_ix, output_pins, images = 0, [], []
         loop = tqdm(iterable=input_pins, total=len(input_pins))
-        
+
         for entry in loop:
             n += 1
             pin = src.models.Pin(**entry)
@@ -131,14 +123,14 @@ def main(from_pinterest: bool) -> None:
                 pc_success, spb_success = process_batch(output_pins, images)
                 n_pc_success += int(pc_success)
                 n_spb_success += int(spb_success)
-                
+
                 if pc_success and spb_success:
                     n_success += len(images)
 
                 batch_ix += 1
                 output_pins, images = [], []
                 success_rate = n_success / n
-            
+
             loop.set_description(
                 f"Index: {index} | "
                 f"Batch: {batch_ix} | "

@@ -2,11 +2,11 @@ from . import bigquery, enums, encoder, models, queries, supabase, utils, pineco
 
 __all__ = [
     "bigquery",
-    "supabase", 
-    "queries", 
+    "supabase",
+    "queries",
     "encoder",
-    "enums", 
-    "models", 
+    "enums",
+    "models",
     "utils",
-    "pinecone"
+    "pinecone",
 ]

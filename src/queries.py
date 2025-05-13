@@ -31,10 +31,8 @@ def make_bigquery_pin_query(n: int, index: int = 0) -> str:
 
 
 def make_supabase_pin_query(
-    from_pinterest: bool, 
-    n: Optional[int] = None, 
-    index: Optional[int] = None
-) -> str: 
+    from_pinterest: bool, n: Optional[int] = None, index: Optional[int] = None
+) -> str:
     if from_pinterest:
         query = f"""
         SELECT 
@@ -52,7 +50,7 @@ def make_supabase_pin_query(
         LEFT JOIN {SUPABASE_SCHEMA_ID_RAW}.pin_vector ON pin.id = raw.pin_vector.pin_id
         WHERE pin_vector.pin_id IS NULL
         """
-    
+
     else:
         query = f"""
         SELECT 
@@ -78,3 +76,26 @@ def make_supabase_pin_query(
             query += f"OFFSET {offset}"
 
     return query
+
+
+def make_supabase_pin_vector_query(
+    user_id: str, n: int, index: int = 0, shuffle: bool = False
+) -> str:
+    base_query = f"""   
+    SELECT pv.*
+    FROM {SUPABASE_SCHEMA_ID_RAW}.pin_vector pv
+    LEFT JOIN {SUPABASE_SCHEMA_ID_RAW}.pin USING (point_id)
+    WHERE pv.user_id = '{user_id}' AND pin.id IS NULL
+    """
+
+    if shuffle:
+        base_query += "\nORDER BY RANDOM()"
+
+    if n:
+        base_query += f"\nLIMIT {n}"
+
+        if index:
+            offset = int(index * n)
+            base_query += f"\nOFFSET {offset}"
+
+    return base_query

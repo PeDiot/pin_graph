@@ -1,6 +1,10 @@
 from typing import List, Dict
 from supabase import create_client, Client
 from supabase.lib.client_options import ClientOptions
+from uuid import uuid4
+
+from .models import PinVector, Pin, Board
+from .enums.supabase import *
 
 
 def init_client(url: str, key: str, schema: str = "public") -> Client:
@@ -23,9 +27,71 @@ def insert(
 ) -> bool:
     try:
         response = client.table(table_id).upsert(rows).execute()
-        
+
         return len(response.data) == len(rows)
 
     except Exception as e:
         print(e)
         return False
+
+
+def get_recommend_board_id(client: Client, user_id: str) -> str:
+    try:
+        response = (
+            client.table(SUPABASE_TABLE_ID_BOARD)
+            .select("id")
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        if response.data:
+            board_id = response.data[0]["id"]
+
+            return board_id
+
+        board = Board(user_id=user_id)
+
+        success = insert(
+            client=client, table_id=SUPABASE_TABLE_ID_BOARD, rows=[board.to_dict()]
+        )
+
+        if success:
+            return board.id
+
+        return None
+
+    except Exception as e:
+        print(e)
+        return None
+
+
+def get_recommend_pins(
+    client: Client, board_id: str, n: int = SUPABASE_BATCH_SIZE
+) -> List[Pin]:
+    try:
+        index = 0
+        pins = []
+
+        while True:
+            offset = int(index * n)
+
+            response = (
+                client.table(SUPABASE_TABLE_ID_PIN)
+                .select("*")
+                .eq("board_id", board_id)
+                .limit(n)
+                .offset(offset)
+                .execute()
+            )
+
+            current_pins = [Pin(**data) for data in response.data]
+            pins.extend(current_pins)
+
+            if len(current_pins) < n:
+                return pins
+
+            index += 1
+
+    except Exception as e:
+        print(e)
+        return []
