@@ -23,35 +23,50 @@ def get_neighbors(
     index: pinecone.Index,
     point_id: str,
     user_id: str,
-    board_id: str,
     n: int,
-    prefetch: int = 0,
-    max_score: float = 1.0,
-    min_score: float = 0.0,
-) -> List[Dict]:
+) -> List[pinecone.ScoredVector]:
     filter_conditions = {"user_id": {"$ne": user_id}}
 
     results = index.query(
         id=point_id,
-        top_k=n + prefetch,
+        top_k=n,
         filter=filter_conditions,
         include_values=False,
         include_metadata=True,
     )
 
-    neighbors = []
+    return results.matches
 
-    for match in results.matches:
-        if match.score < min_score or match.score > max_score:
+
+def postprocess_matches(
+    matches: List[pinecone.ScoredVector],
+    board_id: str,
+    n: int,
+    min_score: float,
+    max_score: float,
+) -> List[Pin]:
+    index, pins = [], []
+
+    for match in matches:
+        if match.score < min_score:
             continue
 
-        pin = Pin(**match.metadata)
+        if match.score > max_score:
+            continue
+
+        metadata = match.metadata
+        pin = Pin(**metadata)
+
+        if pin.image_url in index:
+            continue
+
         pin.set_point_id(match.id)
         pin.set_board_id(board_id)
 
-        neighbors.append(pin.to_supabase())
+        pins.append(pin.to_supabase())
+        index.append(pin.image_url)
 
-        if len(neighbors) == n:
-            return neighbors
+        if len(pins) == n:
+            return pins
 
-    return neighbors
+    return pins
