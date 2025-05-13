@@ -34,9 +34,24 @@ class Pin:
     from_pinterest: bool
     board_name: Optional[str] = None
     title: Optional[str] = None
+    point_id: Optional[str] = None
 
     def to_dict(self) -> Dict:
         return self.__dict__
+
+    def set_board_id(self, board_id: str):
+        self.board_id = board_id
+
+    def set_point_id(self, point_id: str):
+        self.point_id = point_id
+
+    def to_supabase(self) -> Dict:
+        return {
+            "board_id": self.board_id,
+            "image_url": self.image_url,
+            "title": self.title,
+            "point_id": self.point_id,
+        }
 
 
 @dataclass
