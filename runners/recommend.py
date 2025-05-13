@@ -59,8 +59,11 @@ def main():
 
     pc_kwargs = {
         "index": pc_index,
+        "n": NUM_NEIGHBORS + NUM_PREFETCH,
+    }
+
+    pin_kwargs = {
         "n": NUM_NEIGHBORS,
-        "prefetch": NUM_PREFETCH,
         "min_score": MIN_SIMILARITY_SCORE,
         "max_score": MAX_SIMILARITY_SCORE,
     }
@@ -74,16 +77,22 @@ def main():
     if not board_id:
         return
 
-    pc_kwargs["user_id"] = USER_ID
-    pc_kwargs["board_id"] = board_id
-
     loop = tqdm(iterable=enumerate(vectors), total=len(vectors))
     pins, n, uploaded, success_rate = [], 0, 0, -1
 
     for ix, row in loop:
         vector = src.models.PinVector.from_dict(row)
+        neighbors = src.pinecone.get_neighbors(
+            point_id=vector.point_id,
+            user_id=USER_ID,
+            **pc_kwargs,
+        )
 
-        current_pins = src.pinecone.get_neighbors(point_id=vector.point_id, **pc_kwargs)
+        current_pins = src.pinecone.postprocess_matches(
+            matches=neighbors,
+            board_id=board_id,
+            **pin_kwargs,
+        )
 
         pins.extend(current_pins)
         n += len(current_pins)
