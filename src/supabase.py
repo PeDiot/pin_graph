@@ -28,7 +28,7 @@ def insert(
     try:
         response = client.table(table_id).upsert(rows).execute()
 
-        return len(response.data) == len(rows)
+        return len(response.data) > 0
 
     except Exception as e:
         print(e)
