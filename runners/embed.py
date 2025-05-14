@@ -65,7 +65,10 @@ def fetch_pins(from_pinterest: bool) -> List[Dict]:
     return response.data
 
 
-def process_batch(pins: List[src.models.Pin], images: List[Image.Image]):
+def process_batch(
+    pins: List[src.models.Pin],
+    images: List[Image.Image],
+):
     embeddings = encoder.encode(images)
     pin_vectors, vectors = [], []
 
@@ -73,13 +76,19 @@ def process_batch(pins: List[src.models.Pin], images: List[Image.Image]):
         vector = src.models.Vector(values=embedding, metadata=pin.to_dict())
 
         pin_vector = src.models.PinVector(
-            user_id=pin.user_id, pin_id=pin.id, point_id=vector.id
+            user_id=pin.user_id,
+            pin_id=pin.id,
+            point_id=vector.id,
         )
 
         pin_vectors.append(pin_vector.to_dict())
         vectors.append(vector.to_dict())
 
-    pc_success = src.pinecone.insert(pc_index, vectors)
+    pc_success = src.pinecone.insert(
+        index=pc_index,
+        vectors=vectors,
+    )
+
     spb_success = False
 
     if pc_success:
