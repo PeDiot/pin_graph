@@ -53,19 +53,27 @@ def make_supabase_pin_query(
 
     else:
         query = f"""
-        SELECT 
-        board.user_id,
-        pin.board_id,
-        board.name as board_name,
-        pin.id,
-        pin.created_at,
-        pin.image_url,
-        pin.title,
-        false as from_pinterest
-        FROM {SUPABASE_SCHEMA_ID_PUBLIC}.board
-        INNER JOIN {SUPABASE_SCHEMA_ID_PUBLIC}.pin ON board.id = pin.board_id
-        LEFT JOIN {SUPABASE_SCHEMA_ID_RAW}.pin_vector ON pin.id = public.pin.id
-        WHERE pin_vector.pin_id IS NULL
+        WITH 
+            board_pins AS (
+            SELECT 
+            board.user_id,
+            pin.board_id,
+            board.name as board_name,
+            CAST(pin.id AS TEXT),
+            pin.created_at,
+            pin.image_url,
+            pin.title,
+            false as from_pinterest
+            FROM {SUPABASE_SCHEMA_ID_PUBLIC}.board
+            INNER JOIN {SUPABASE_SCHEMA_ID_PUBLIC}.pin ON board.id = pin.board_id
+            )
+            , remaining_pins AS (
+            SELECT board_pins.*
+            FROM board_pins
+            LEFT JOIN {SUPABASE_SCHEMA_ID_RAW}.pin_vector ON board_pins.id = pin_vector.pin_id
+            WHERE pin_vector.pin_id IS NULL
+            )
+        SELECT * FROM remaining_pins
         """
 
     if n:
