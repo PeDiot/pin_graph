@@ -1,15 +1,17 @@
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 import pinecone
 
 from .models import Pin
 
 
-def insert(index: pinecone.Index, vectors: List[Dict]) -> bool:
+def insert(
+    index: pinecone.Index, vectors: List[Dict], namespace: Optional[str] = None
+) -> bool:
     if len(vectors) == 0:
         return False
 
     try:
-        response = index.upsert(vectors=vectors)
+        response = index.upsert(vectors=vectors, namespace=namespace)
         n_upserted = response.get("upserted_count", 0)
 
         return n_upserted == len(vectors)
@@ -83,7 +85,10 @@ def postprocess_matches(
 
 
 def _create_filter_conditions(user_id: str, image_urls: List[str]) -> Dict:
-    filter_conditions = {"user_id": {"$ne": user_id}}
+    filter_conditions = {
+        "from_pinterest": {"$ne": True},
+        "user_id": {"$ne": user_id}
+    }
 
     if image_urls:
         filter_conditions["image_url"] = {"$nin": image_urls}
