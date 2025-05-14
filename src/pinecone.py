@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import pinecone
 
 from .models import Pin
@@ -24,8 +24,11 @@ def get_neighbors(
     point_id: str,
     user_id: str,
     n: int,
+    image_urls: List[str],
 ) -> List[pinecone.ScoredVector]:
-    filter_conditions = {"user_id": {"$ne": user_id}}
+    filter_conditions = _create_filter_conditions(
+        user_id=user_id, image_urls=image_urls
+    )
 
     results = index.query(
         id=point_id,
@@ -44,29 +47,45 @@ def postprocess_matches(
     n: int,
     min_score: float,
     max_score: float,
-) -> List[Pin]:
-    index, pins = [], []
+    image_urls: List[str],
+) -> Tuple[List[Pin], List[str]]:
+    pins, score_list = [], []
 
     for match in matches:
-        if match.score < min_score:
+        score = round(match.score, 3)
+
+        if score < min_score:
             continue
 
-        if match.score > max_score:
+        if score > max_score:
+            continue
+
+        if score in score_list:
             continue
 
         metadata = match.metadata
         pin = Pin(**metadata)
 
-        if pin.image_url in index:
+        if pin.image_url in image_urls:
             continue
 
         pin.set_point_id(match.id)
         pin.set_board_id(board_id)
+        score_list.append(score)
 
         pins.append(pin.to_supabase())
-        index.append(pin.image_url)
+        image_urls.append(pin.image_url)
 
         if len(pins) == n:
-            return pins
+            return pins, image_urls
 
-    return pins
+    return pins, image_urls
+
+
+def _create_filter_conditions(user_id: str, image_urls: List[str]) -> Dict:
+    filter_conditions = {"user_id": {"$ne": user_id}}
+
+    if image_urls:
+        filter_conditions["image_url"] = {"$nin": image_urls}
+
+    return filter_conditions

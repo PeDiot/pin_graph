@@ -22,7 +22,9 @@ def parse_args() -> Dict:
 
 def main(table_id: Literal["board", "pin"], n: int) -> None:
     secrets = src.utils.load_secrets(env_var_name="SECRETS_JSON")
+
     bq_client = src.bigquery.init_client(secrets["GCP_CREDENTIALS"])
+
     spb_client = src.supabase.init_client(
         url=secrets["SUPABASE_URL"],
         key=secrets["SUPABASE_SERVICE_ROLE_KEY"],

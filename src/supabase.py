@@ -26,7 +26,14 @@ def insert(
     rows: List[Dict],
 ) -> bool:
     try:
-        response = client.table(table_id).upsert(rows).execute()
+        response = (
+            client.table(table_id)
+            .upsert(
+                json=rows,
+                ignore_duplicates=True,
+            )
+            .execute()
+        )
 
         return len(response.data) > 0
 
@@ -65,30 +72,29 @@ def get_recommend_board_id(client: Client, user_id: str) -> str:
         return None
 
 
-def get_recommend_pins(
+def get_recommend_image_urls(
     client: Client, board_id: str, n: int = SUPABASE_BATCH_SIZE
 ) -> List[Pin]:
     try:
         index = 0
-        pins = []
+        image_urls = []
 
         while True:
             offset = int(index * n)
 
             response = (
                 client.table(SUPABASE_TABLE_ID_PIN)
-                .select("*")
+                .select("image_url")
                 .eq("board_id", board_id)
                 .limit(n)
                 .offset(offset)
                 .execute()
             )
 
-            current_pins = [Pin(**data) for data in response.data]
-            pins.extend(current_pins)
+            image_urls.extend([data["image_url"] for data in response.data])
 
-            if len(current_pins) < n:
-                return pins
+            if len(response.data) < n:
+                return image_urls
 
             index += 1
 
