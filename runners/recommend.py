@@ -4,19 +4,18 @@ sys.path.append("../")
 
 import src
 
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Optional
 from tqdm import tqdm
 from pinecone import Pinecone
 
 
-NUM_REFERENCE_VECTORS = 1
+NUM_USERS = 100
+NUM_REFERENCE_VECTORS = 100
 NUM_NEIGHBORS = 3
 NUM_PREFETCH = 10
-MIN_SIMILARITY_SCORE = 0.5
-MAX_SIMILARITY_SCORE = 0.9
-UPLOAD_EVERY = 5
-
-USER_ID = "5c1f9f1d-d1d3-4b28-8a62-1cfbc0d1839f"
+MIN_SIMILARITY_SCORE = 0.6
+MAX_SIMILARITY_SCORE = 0.95
+UPLOAD_EVERY = 50
 
 
 def initialize_clients() -> Tuple:
@@ -34,9 +33,26 @@ def initialize_clients() -> Tuple:
     return spb_client, pc_index
 
 
+def fetch_user_ids(n: int, index: Optional[int] = None) -> List[str]:
+    params = {"p_limit": n}
+
+    if index is None:
+        fn = src.enums.supabase.SUPABASE_RPC_ID_GET_DISTINCT_USERS_STRICT
+    else:
+        fn = src.enums.supabase.SUPABASE_RPC_ID_GET_DISTINCT_USERS
+        params["p_offset"] = int(index * n)
+
+    response = spb_client.rpc(fn, params).execute()
+
+    if response.data:
+        return [data["user_id"] for data in response.data]
+
+    return []
+
+
 def fetch_reference_vectors(user_id: str) -> List[Dict]:
     query = src.queries.make_supabase_pin_vector_query(
-        user_id=user_id, n=NUM_REFERENCE_VECTORS, shuffle=False
+        user_id=user_id, n=NUM_REFERENCE_VECTORS, index=0
     )
 
     kwargs = {
@@ -68,52 +84,71 @@ def main():
         "max_score": MAX_SIMILARITY_SCORE,
     }
 
-    vectors = fetch_reference_vectors(user_id=USER_ID)
-    if not vectors:
-        return
+    user_ids = fetch_user_ids(n=NUM_USERS)
 
-    board_id = src.supabase.get_recommend_board_id(client=spb_client, user_id=USER_ID)
+    for user_ix, user_id in enumerate(user_ids):
+        vectors = fetch_reference_vectors(user_id)
+        if not vectors:
+            return
 
-    if not board_id:
-        return
-
-    loop = tqdm(iterable=enumerate(vectors), total=len(vectors))
-    pins, n, uploaded, success_rate = [], 0, 0, -1
-
-    for ix, row in loop:
-        vector = src.models.PinVector.from_dict(row)
-        neighbors = src.pinecone.get_neighbors(
-            point_id=vector.point_id,
-            user_id=USER_ID,
-            **pc_kwargs,
+        board_id = src.supabase.get_recommend_board_id(
+            client=spb_client, user_id=user_id
         )
 
-        current_pins = src.pinecone.postprocess_matches(
-            matches=neighbors,
+        if not board_id:
+            return
+
+        image_urls = src.supabase.get_recommend_image_urls(
+            client=spb_client,
             board_id=board_id,
-            **pin_kwargs,
         )
 
-        pins.extend(current_pins)
-        n += len(current_pins)
-
-        if should_upload(ix, len(vectors)):
-            if src.supabase.insert(
-                client=spb_client,
-                table_id=src.enums.supabase.SUPABASE_TABLE_ID_PIN,
-                rows=pins,
-            ):
-                uploaded += len(pins)
-
-            pins = []
-            success_rate = uploaded / n
-
-        loop.set_description(
-            f"Batch: {ix} | "
-            f"Processed: {n} | "
-            f"Uploaded: {uploaded} | "
-            f"Success: {success_rate:.2f}"
+        loop = tqdm(
+            iterable=enumerate(vectors),
+            total=len(vectors),
+            desc=f"User: {user_ix}",
         )
+
+        pins, n, uploaded, success_rate = [], 0, 0, -1
+
+        for ix, row in loop:
+            vector = src.models.PinVector.from_dict(row)
+
+            neighbors = src.pinecone.get_neighbors(
+                point_id=vector.point_id,
+                user_id=user_id,
+                image_urls=image_urls,
+                **pc_kwargs,
+            )
+
+            current_pins, image_urls = src.pinecone.postprocess_matches(
+                matches=neighbors,
+                board_id=board_id,
+                image_urls=image_urls,
+                **pin_kwargs,
+            )
+
+            pins.extend(current_pins)
+            n += len(current_pins)
+
+            if should_upload(ix, len(vectors)):
+                if src.supabase.insert(
+                    client=spb_client,
+                    table_id=src.enums.supabase.SUPABASE_TABLE_ID_PIN,
+                    rows=pins,
+                ):
+                    uploaded += len(pins)
+
+                pins = []
+                success_rate = uploaded / n if n > 0 else -1
+
+            loop.set_description(
+                f"User: {user_ix} | "
+                f"Batch: {ix+1} | "
+                f"Processed: {n} | "
+                f"Uploaded: {uploaded} | "
+                f"Success: {success_rate:.2f}"
+            )
 
 
 if __name__ == "__main__":
