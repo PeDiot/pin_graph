@@ -85,7 +85,7 @@ def postprocess_matches(
 
 
 def _create_filter_conditions(user_id: str, image_urls: List[str]) -> Dict:
-    filter_conditions = {"from_pinterest": {"$ne": True}, "user_id": {"$ne": user_id}}
+    filter_conditions = {"from_pinterest": {"$eq": True}, "user_id": {"$ne": user_id}}
 
     if image_urls:
         filter_conditions["image_url"] = {"$nin": image_urls}
