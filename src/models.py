@@ -65,6 +65,11 @@ class Vector:
     def to_dict(self) -> Dict:
         return self.__dict__
 
+    def process_metadata(self):
+        for key, value in self.metadata.items():
+            if value is None:
+                del self.metadata[key]
+
 
 @dataclass
 class PinVector:

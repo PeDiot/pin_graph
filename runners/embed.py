@@ -74,10 +74,6 @@ def process_batch(
 
     for pin, embedding in zip(pins, embeddings):
         metadata = pin.to_dict()
-
-        if "point_id" in metadata:
-            del metadata["point_id"]
-
         vector = src.models.Vector(values=embedding, metadata=metadata)
 
         pin_vector = src.models.PinVector(
