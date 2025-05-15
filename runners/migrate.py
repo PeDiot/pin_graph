@@ -9,18 +9,17 @@ import src
 
 def parse_args() -> Dict:
     parser = argparse.ArgumentParser()
+
     parser.add_argument(
         "--table_id", "-t", type=str, required=True, choices=["board", "pin"]
     )
-    parser.add_argument(
-        "--n", "-n", type=int, required=True, default=src.enums.SUPABASE_BATCH_SIZE
-    )
+
     args = parser.parse_args()
 
-    return vars(args)
+    return args.table_id
 
 
-def main(table_id: Literal["board", "pin"], n: int) -> None:
+def main(table_id: Literal["board", "pin"]) -> None:
     secrets = src.utils.load_secrets(env_var_name="SECRETS_JSON")
 
     bq_client = src.bigquery.init_client(secrets["GCP_CREDENTIALS"])
@@ -43,7 +42,7 @@ def main(table_id: Literal["board", "pin"], n: int) -> None:
     index, n_success, n_rows = 0, 0, 0
 
     while True:
-        query = query_func(n=n)
+        query = query_func(n=src.enums.SUPABASE_BATCH_SIZE)
         result = bq_client.query(query).result()
         rows, processed_rows = [], []
 
@@ -56,7 +55,7 @@ def main(table_id: Literal["board", "pin"], n: int) -> None:
             processed_rows.append(processed_row)
 
         if len(rows) == 0:
-            break
+            return
 
         success = src.supabase.insert(
             client=spb_client, table_id=supabase_table_id, rows=rows
@@ -82,5 +81,5 @@ def main(table_id: Literal["board", "pin"], n: int) -> None:
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    main(**args)
+    table_id = parse_args()
+    main(table_id)
