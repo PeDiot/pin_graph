@@ -1,4 +1,4 @@
-import sys 
+import sys
 
 sys.path.append("../")
 
@@ -19,7 +19,7 @@ def main() -> None:
             raw_table_id=table_id,
             public_table_id=table_id,
         )
-        
+
         print(f"{table_id}: {success}.")
 
 
