@@ -61,12 +61,15 @@ class Vector:
 
     def __post_init__(self):
         self.id = str(uuid4())
+        self.process_metadata()
 
     def to_dict(self) -> Dict:
         return self.__dict__
 
     def process_metadata(self):
-        for key, value in self.metadata.items():
+        metadata_copy = self.metadata.copy()
+        
+        for key, value in metadata_copy.items():
             if value is None:
                 del self.metadata[key]
 
