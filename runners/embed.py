@@ -73,7 +73,12 @@ def process_batch(
     pin_vectors, vectors = [], []
 
     for pin, embedding in zip(pins, embeddings):
-        vector = src.models.Vector(values=embedding, metadata=pin.to_dict())
+        metadata = pin.to_dict()
+
+        if "point_id" in metadata:
+            del metadata["point_id"]
+
+        vector = src.models.Vector(values=embedding, metadata=metadata)
 
         pin_vector = src.models.PinVector(
             user_id=pin.user_id,
