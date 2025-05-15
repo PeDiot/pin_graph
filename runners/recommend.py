@@ -9,7 +9,7 @@ from tqdm import tqdm
 from pinecone import Pinecone
 
 
-NUM_USERS = 100
+NUM_USERS = 1000
 NUM_REFERENCE_VECTORS = 100
 NUM_NEIGHBORS = 3
 NUM_PREFETCH = 10
@@ -84,71 +84,79 @@ def main():
         "max_score": MAX_SIMILARITY_SCORE,
     }
 
-    user_ids = fetch_user_ids(n=NUM_USERS)
+    index = 0
 
-    for user_ix, user_id in enumerate(user_ids):
-        vectors = fetch_reference_vectors(user_id)
-        if not vectors:
+    while True:
+        user_ids = fetch_user_ids(n=NUM_USERS, index=index)
+        if not user_ids:
             return
 
-        board_id = src.supabase.get_recommend_board_id(
-            client=spb_client, user_id=user_id
-        )
+        for user_ix, user_id in enumerate(user_ids):
+            vectors = fetch_reference_vectors(user_id)
+            if not vectors:
+                continue
 
-        if not board_id:
-            return
-
-        image_urls = src.supabase.get_recommend_image_urls(
-            client=spb_client,
-            board_id=board_id,
-        )
-
-        loop = tqdm(
-            iterable=enumerate(vectors),
-            total=len(vectors),
-            desc=f"User: {user_ix}",
-        )
-
-        pins, n, uploaded, success_rate = [], 0, 0, -1
-
-        for ix, row in loop:
-            vector = src.models.PinVector.from_dict(row)
-
-            neighbors = src.pinecone.get_neighbors(
-                point_id=vector.point_id,
-                user_id=user_id,
-                image_urls=image_urls,
-                **pc_kwargs,
+            board_id = src.supabase.get_recommend_board_id(
+                client=spb_client, user_id=user_id
             )
 
-            current_pins, image_urls = src.pinecone.postprocess_matches(
-                matches=neighbors,
+            if not board_id:
+                continue
+
+            image_urls = src.supabase.get_recommend_image_urls(
+                client=spb_client,
                 board_id=board_id,
-                image_urls=image_urls,
-                **pin_kwargs,
             )
 
-            pins.extend(current_pins)
-            n += len(current_pins)
-
-            if should_upload(ix, len(vectors)):
-                if src.supabase.insert(
-                    client=spb_client,
-                    table_id=src.enums.supabase.SUPABASE_TABLE_ID_PIN,
-                    rows=pins,
-                ):
-                    uploaded += len(pins)
-
-                pins = []
-                success_rate = uploaded / n if n > 0 else -1
-
-            loop.set_description(
-                f"User: {user_ix} | "
-                f"Batch: {ix+1} | "
-                f"Processed: {n} | "
-                f"Uploaded: {uploaded} | "
-                f"Success: {success_rate:.2f}"
+            loop = tqdm(
+                iterable=enumerate(vectors),
+                total=len(vectors),
+                desc=f"User: {user_ix}",
             )
+
+            pins, n, uploaded, success_rate = [], 0, 0, -1
+
+            for ix, row in loop:
+                vector = src.models.PinVector.from_dict(row)
+
+                neighbors = src.pinecone.get_neighbors(
+                    point_id=vector.point_id,
+                    user_id=user_id,
+                    image_urls=image_urls,
+                    **pc_kwargs,
+                )
+
+                current_pins, image_urls = src.pinecone.postprocess_matches(
+                    matches=neighbors,
+                    board_id=board_id,
+                    image_urls=image_urls,
+                    **pin_kwargs,
+                )
+
+                pins.extend(current_pins)
+                n += len(current_pins)
+
+                if should_upload(ix, len(vectors)):
+                    if src.supabase.insert(
+                        client=spb_client,
+                        table_id=src.enums.supabase.SUPABASE_TABLE_ID_PIN,
+                        rows=pins,
+                    ):
+                        uploaded += len(pins)
+
+                    pins = []
+                    success_rate = uploaded / n if n > 0 else -1
+
+                loop.set_description(
+                    f"Index: {index} | "
+                    f"User: {user_ix} | "
+                    f"Batch: {ix+1} | "
+                    f"Processed: {n} | "
+                    f"Uploaded: {uploaded} | "
+                    f"Success: {success_rate:.2f}"
+                )
+
+        index += 1
 
 
 if __name__ == "__main__":
