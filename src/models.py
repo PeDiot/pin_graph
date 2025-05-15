@@ -68,7 +68,7 @@ class Vector:
 
     def process_metadata(self):
         metadata_copy = self.metadata.copy()
-        
+
         for key, value in metadata_copy.items():
             if value is None:
                 del self.metadata[key]
