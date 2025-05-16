@@ -1,4 +1,4 @@
-name: Migrate Boards
+name: BigQuery to Supabase
 
 on:
   workflow_dispatch:
