@@ -100,25 +100,3 @@ def get_recommend_image_urls(
     except Exception as e:
         print(e)
         return []
-
-
-def copy_from_raw_to_public(
-    client: Client,
-    raw_table_id: str,
-    public_table_id: str,
-) -> bool:
-    try:
-        params = {
-            "raw_table_id": raw_table_id,
-            "public_table_id": public_table_id,
-        }
-
-        fn = SUPABASE_RPC_ID_COPY_RAW_TO_PUBLIC
-
-        client.rpc(fn, params).execute()
-
-        return True
-
-    except Exception as e:
-        print(e)
-        return False
