@@ -9,8 +9,10 @@ from tqdm import tqdm
 from pinecone import Pinecone
 
 
+ONLY_NEW_USERS = True
 NUM_USERS = 1000
-NUM_REFERENCE_VECTORS = 100
+NUM_REFERENCE_VECTORS_MAX = 100
+NUM_REFERENCE_VECTORS_MIN = 3
 NUM_NEIGHBORS = 3
 NUM_PREFETCH = 10
 MIN_SIMILARITY_SCORE = 0.6
@@ -33,12 +35,19 @@ def initialize_clients() -> Tuple:
     return spb_client, pc_index
 
 
-def fetch_user_ids(n: int, index: Optional[int] = None) -> List[str]:
+def fetch_user_ids(
+    only_new: bool,
+    n: int, 
+    index: Optional[int] = None
+) -> List[str]:
     params = {"p_limit": n}
 
-    if index is None:
+    if only_new:
         fn = src.enums.supabase.SUPABASE_RPC_ID_GET_DISTINCT_USERS_STRICT
     else:
+        if index is None:
+            return []
+        
         fn = src.enums.supabase.SUPABASE_RPC_ID_GET_DISTINCT_USERS
         params["p_offset"] = int(index * n)
 
@@ -52,7 +61,8 @@ def fetch_user_ids(n: int, index: Optional[int] = None) -> List[str]:
 
 def fetch_reference_vectors(user_id: str) -> List[Dict]:
     query = src.queries.make_supabase_pin_vector_query(
-        user_id=user_id, n=NUM_REFERENCE_VECTORS, index=0
+        user_id=user_id, 
+        n=NUM_REFERENCE_VECTORS_MAX, 
     )
 
     kwargs = {
@@ -61,8 +71,12 @@ def fetch_reference_vectors(user_id: str) -> List[Dict]:
     }
 
     response = spb_client.rpc(**kwargs).execute()
+    data = response.data
 
-    return response.data
+    if len(data) < NUM_REFERENCE_VECTORS_MIN:
+        return []
+
+    return data
 
 
 def should_upload(ix: int, vectors_count: int) -> bool:
@@ -87,7 +101,14 @@ def main():
     index = 0
 
     while True:
-        user_ids = fetch_user_ids(n=NUM_USERS, index=index)
+        user_ids = fetch_user_ids(
+            only_new=ONLY_NEW_USERS,
+            n=NUM_USERS, 
+            index=index
+        )
+
+        index += 1
+
         if not user_ids:
             return
 
@@ -148,16 +169,12 @@ def main():
                     success_rate = uploaded / n if n > 0 else -1
 
                 loop.set_description(
-                    f"Index: {index} | "
+                    f"Batch: {index} | "
                     f"User: {user_ix} | "
-                    f"Batch: {ix+1} | "
                     f"Processed: {n} | "
                     f"Uploaded: {uploaded} | "
                     f"Success: {success_rate:.2f}"
                 )
-
-        index += 1
-
 
 if __name__ == "__main__":
     main()
