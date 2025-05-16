@@ -13,14 +13,13 @@ def main() -> None:
         key=secrets["SUPABASE_SERVICE_ROLE_KEY"],
     )
 
-    for table_id in ["board", "pin"]:
-        success = src.supabase.copy_from_raw_to_public(
-            client=client,
-            raw_table_id=table_id,
-            public_table_id=table_id,
-        )
-
-        print(f"{table_id}: {success}.")
+    for fn in [
+        src.enums.supabase.SUPABASE_RPC_ID_COPY_RECOMMEND_BOARDS,
+        src.enums.supabase.SUPABASE_RPC_ID_COPY_RECOMMEND_PINS,
+    ]:
+        response = client.rpc(fn).execute()
+        n_rows = len(response.data)
+        print(f"{fn}: {n_rows} rows.")
 
 
 if __name__ == "__main__":
