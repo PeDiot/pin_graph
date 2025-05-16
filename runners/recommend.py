@@ -35,11 +35,7 @@ def initialize_clients() -> Tuple:
     return spb_client, pc_index
 
 
-def fetch_user_ids(
-    only_new: bool,
-    n: int, 
-    index: Optional[int] = None
-) -> List[str]:
+def fetch_user_ids(only_new: bool, n: int, index: Optional[int] = None) -> List[str]:
     params = {"p_limit": n}
 
     if only_new:
@@ -47,7 +43,7 @@ def fetch_user_ids(
     else:
         if index is None:
             return []
-        
+
         fn = src.enums.supabase.SUPABASE_RPC_ID_GET_DISTINCT_USERS
         params["p_offset"] = int(index * n)
 
@@ -61,8 +57,8 @@ def fetch_user_ids(
 
 def fetch_reference_vectors(user_id: str) -> List[Dict]:
     query = src.queries.make_supabase_pin_vector_query(
-        user_id=user_id, 
-        n=NUM_REFERENCE_VECTORS_MAX, 
+        user_id=user_id,
+        n=NUM_REFERENCE_VECTORS_MAX,
     )
 
     kwargs = {
@@ -101,11 +97,7 @@ def main():
     index = 0
 
     while True:
-        user_ids = fetch_user_ids(
-            only_new=ONLY_NEW_USERS,
-            n=NUM_USERS, 
-            index=index
-        )
+        user_ids = fetch_user_ids(only_new=ONLY_NEW_USERS, n=NUM_USERS, index=index)
 
         index += 1
 
@@ -175,6 +167,7 @@ def main():
                     f"Uploaded: {uploaded} | "
                     f"Success: {success_rate:.2f}"
                 )
+
 
 if __name__ == "__main__":
     main()
