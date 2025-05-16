@@ -1,4 +1,4 @@
-name: raw to public
+name: Raw To Public
 
 on:
   workflow_dispatch:
