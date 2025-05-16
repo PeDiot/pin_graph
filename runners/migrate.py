@@ -2,21 +2,9 @@ import sys
 
 sys.path.append("../")
 
-from typing import Literal, Dict
-import argparse
+
+from typing import Literal
 import src
-
-
-def parse_args() -> Dict:
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "--table_id", "-t", type=str, required=True, choices=["board", "pin"]
-    )
-
-    args = parser.parse_args()
-
-    return args.table_id
 
 
 def main(table_id: Literal["board", "pin"]) -> None:
@@ -81,5 +69,5 @@ def main(table_id: Literal["board", "pin"]) -> None:
 
 
 if __name__ == "__main__":
-    table_id = parse_args()
-    main(table_id)
+    for table_id in ["board", "pin"]:
+        main(table_id)

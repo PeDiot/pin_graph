@@ -28,5 +28,4 @@ jobs:
       run: |
         docker run --rm \
           -e SECRETS_JSON="$SECRETS_JSON" \
-          pin-graph:migrate \
-          --table_id board 
+          pin-graph:migrate
