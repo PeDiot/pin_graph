@@ -1,4 +1,4 @@
-name: Insert Data
+name: raw to public
 
 on:
   workflow_dispatch:
