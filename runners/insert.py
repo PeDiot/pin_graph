@@ -3,6 +3,10 @@ import sys
 sys.path.append("../")
 
 import src
+from tqdm import tqdm
+
+
+PIN_BATCH_SIZE = 1000
 
 
 def main() -> None:
@@ -13,13 +17,23 @@ def main() -> None:
         key=secrets["SUPABASE_SERVICE_ROLE_KEY"],
     )
 
-    for fn in [
-        src.enums.supabase.SUPABASE_RPC_ID_COPY_RECOMMEND_BOARDS,
-        src.enums.supabase.SUPABASE_RPC_ID_COPY_RECOMMEND_PINS,
-    ]:
-        response = client.rpc(fn).execute()
-        n_rows = len(response.data)
-        print(f"{fn}: {n_rows} rows.")
+    fn = src.enums.supabase.SUPABASE_RPC_ID_COPY_RECOMMEND_BOARDS
+    response = client.rpc(fn).execute()
+    print(f"{fn}: {len(response.data)} rows.")
+
+    fn = src.enums.supabase.SUPABASE_RPC_ID_COPY_RECOMMEND_PINS
+    params = {"p_limit": PIN_BATCH_SIZE}
+    n_rows = 0
+
+    with tqdm(desc=fn, unit="batch") as pbar:
+        while True:
+            response = client.rpc(fn, params).execute()
+            n_rows += len(response.data)
+            pbar.update(1)
+            pbar.set_description(f"{fn}: {n_rows} rows")
+
+            if len(response.data) < PIN_BATCH_SIZE:
+                break
 
 
 if __name__ == "__main__":
