@@ -124,8 +124,8 @@ def main():
         )
 
         if not is_new:
-            src.supabase.update_index(client=spb_client, value=index)
-            index += 1
+            index = -1 if len(user_ids) == 0 else index
+            index = src.supabase.update_index(client=spb_client, value=index)
 
         if not user_ids:
             is_new = False
