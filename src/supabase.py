@@ -100,3 +100,50 @@ def get_recommend_image_urls(
     except Exception as e:
         print(e)
         return []
+
+
+def get_index(client: Client) -> int:
+    try:
+        response = (
+            client.table(SUPABASE_TABLE_ID_INDEX)
+            .select("value")
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+
+        if response.data:
+            index = response.data[0]["value"]
+
+            return index
+
+        return 0
+
+    except Exception as e:
+        print(e)
+        return 0
+
+
+def update_index(client: Client, value: int) -> bool:
+    try:
+        new_value = value + 1
+
+        response = (
+            client.table(SUPABASE_TABLE_ID_INDEX)
+            .update({"value": new_value})
+            .eq("value", value)
+            .execute()
+        )
+
+        if not response.data:
+            return insert(
+                client=client,
+                table_id=SUPABASE_TABLE_ID_INDEX,
+                rows=[{"value": new_value}],
+            )
+
+        return len(response.data) == 1
+
+    except Exception as e:
+        print(e)
+        return False
