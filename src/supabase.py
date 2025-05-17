@@ -124,7 +124,7 @@ def get_index(client: Client) -> int:
         return 0
 
 
-def update_index(client: Client, value: int) -> bool:
+def update_index(client: Client, value: int) -> int:
     try:
         new_value = value + 1
 
@@ -142,8 +142,8 @@ def update_index(client: Client, value: int) -> bool:
                 rows=[{"value": new_value}],
             )
 
-        return len(response.data) == 1
+        return new_value
 
     except Exception as e:
         print(e)
-        return False
+        return 0
