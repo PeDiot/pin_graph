@@ -87,17 +87,27 @@ def make_supabase_pin_query(
 
 
 def make_supabase_pin_vector_query(
-    n: int, index: int = 0, shuffle: bool = False, user_id: Optional[str] = None
+    n: int,
+    is_new: bool,
+    user_id: Optional[str] = None,
+    index: int = 0,
+    shuffle: bool = False,
 ) -> str:
     base_query = f"""   
     SELECT pv.*
     FROM {SUPABASE_SCHEMA_ID_RAW}.pin_vector pv
-    LEFT JOIN {SUPABASE_SCHEMA_ID_RAW}.pin USING (point_id)
-    WHERE pin.id IS NULL
     """
+    where_prefix = "WHERE"
+
+    if is_new:
+        base_query += f"""
+        LEFT JOIN {SUPABASE_SCHEMA_ID_RAW}.pin USING (point_id)
+        WHERE pin.id IS NULL
+        """
+        where_prefix = "AND"
 
     if user_id:
-        base_query += f" AND pv.user_id = '{user_id}'"
+        base_query += f" {where_prefix} pv.user_id = '{user_id}'"
 
     if shuffle:
         base_query += "\nORDER BY RANDOM()"
