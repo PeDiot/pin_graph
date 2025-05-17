@@ -5,11 +5,12 @@ sys.path.append("../")
 import src
 
 from typing import Tuple, List, Dict, Optional
+import random
 from tqdm import tqdm
 from pinecone import Pinecone
 
 
-ONLY_NEW_USERS = True
+NEW_USERS_ALPHA = 0.8
 NUM_USERS = 1000
 NUM_REFERENCE_VECTORS_MAX = 100
 NUM_REFERENCE_VECTORS_MIN = 3
@@ -35,10 +36,14 @@ def initialize_clients() -> Tuple:
     return spb_client, pc_index
 
 
-def fetch_user_ids(only_new: bool, n: int, index: Optional[int] = None) -> List[str]:
+def is_new_users() -> bool:
+    return random.random() < NEW_USERS_ALPHA
+
+
+def fetch_user_ids(is_new: bool, n: int, index: Optional[int] = None) -> List[str]:
     params = {"p_limit": n}
 
-    if only_new:
+    if is_new:
         fn = src.enums.supabase.SUPABASE_RPC_ID_GET_DISTINCT_USERS_STRICT
     else:
         if index is None:
@@ -56,10 +61,12 @@ def fetch_user_ids(only_new: bool, n: int, index: Optional[int] = None) -> List[
 
 
 def fetch_reference_vectors(user_id: str) -> List[Dict]:
-    query = src.queries.make_supabase_pin_vector_query(
-        user_id=user_id,
-        n=NUM_REFERENCE_VECTORS_MAX,
-    )
+    query_args = {
+        "user_id": user_id,
+        "n": NUM_REFERENCE_VECTORS_MAX,
+    }
+
+    query = src.queries.make_supabase_pin_vector_query(is_new=True, **query_args)
 
     kwargs = {
         "fn": src.enums.supabase.SUPABASE_RPC_ID_GET_PIN_VECTORS,
@@ -67,12 +74,20 @@ def fetch_reference_vectors(user_id: str) -> List[Dict]:
     }
 
     response = spb_client.rpc(**kwargs).execute()
-    data = response.data
 
-    if len(data) < NUM_REFERENCE_VECTORS_MIN:
+    if len(response.data) < NUM_REFERENCE_VECTORS_MIN:
+        query = src.queries.make_supabase_pin_vector_query(
+            is_new=False, shuffle=True, **query_args
+        )
+
+        kwargs["params"]["query"] = query
+
+        response = spb_client.rpc(**kwargs).execute()
+
+    if len(response.data) < NUM_REFERENCE_VECTORS_MIN:
         return []
 
-    return data
+    return response.data
 
 
 def should_upload(ix: int, vectors_count: int) -> bool:
@@ -94,15 +109,27 @@ def main():
         "max_score": MAX_SIMILARITY_SCORE,
     }
 
-    index = 0
+    is_new = is_new_users()
+
+    if not is_new:
+        index = src.supabase.get_index(client=spb_client)
+    else:
+        index = 0
 
     while True:
-        user_ids = fetch_user_ids(only_new=ONLY_NEW_USERS, n=NUM_USERS, index=index)
+        user_ids = fetch_user_ids(
+            is_new=is_new,
+            n=NUM_USERS,
+            index=index,
+        )
 
-        index += 1
+        if not is_new:
+            src.supabase.update_index(client=spb_client, value=index)
+            index += 1
 
         if not user_ids:
-            return
+            is_new = False
+            continue
 
         for user_ix, user_id in enumerate(user_ids):
             vectors = fetch_reference_vectors(user_id)
