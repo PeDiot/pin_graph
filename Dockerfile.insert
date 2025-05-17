@@ -9,12 +9,11 @@ COPY requirements.txt .
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the source code
-COPY src/ src/
-COPY runners/ runners/
+# Copy the rest of the application
+COPY . .
 
-# Set environment variable for secrets
-ENV SECRETS_JSON=""
+# Set environment variables
+ENV PYTHONPATH=/app
 
 # Run the insert script
 CMD ["python", "runners/insert.py"] 
