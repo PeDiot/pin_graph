@@ -127,15 +127,25 @@ def process_batch(
     return pc_success, spb_success, len(pins)
 
 
-def should_stop(is_premium: bool, is_top: bool) -> Tuple[bool, bool, bool]:
-    if is_premium:
-        is_premium, is_top = False, True
-        stop = False
-    elif is_top:
-        is_premium, is_top = False, False
-        stop = False
+def should_stop(
+    is_premium: bool, 
+    is_top: bool,
+    input_pins: List[Dict]
+) -> Tuple[bool, bool, bool]:
+    if len(input_pins) >= src.enums.supabase.SUPABASE_BATCH_SIZE:
+        return is_premium, is_top, False
 
-    return is_premium, is_top, stop
+    else:
+        if is_premium:
+            is_premium, is_top = False, True
+            stop = False
+        elif is_top:
+            is_premium, is_top = False, False
+            stop = False
+        else:
+            stop = True
+
+        return is_premium, is_top, stop
 
 
 def main(from_pinterest: bool) -> None:
@@ -155,7 +165,10 @@ def main(from_pinterest: bool) -> None:
             is_top=is_top,
         )
 
-        is_premium, is_top, stop = should_stop(is_premium, is_top)
+        is_premium, is_top, stop = should_stop(
+            is_premium, is_top, input_pins
+        )
+
         if stop:
             return
 
