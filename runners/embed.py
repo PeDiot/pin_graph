@@ -77,8 +77,24 @@ def fetch_pins(
 def process_batch(
     pins: List[src.models.Pin],
     images: List[Image.Image],
-):
-    embeddings = encoder.encode(images)
+) -> Tuple[bool, bool, int]:
+    try: 
+        embeddings = encoder.encode(images)
+
+    except Exception as e:
+        pins_valid, embeddings = [], []
+
+        for pin, image in zip(pins, images):
+            try:
+                embedding = encoder.encode([image])
+                pins_valid.append(pin)
+                embeddings.append(embedding)
+            
+            except Exception as e:
+                continue
+
+        pins = pins_valid
+        
     pin_vectors, vectors = [], []
 
     for pin, embedding in zip(pins, embeddings):
@@ -108,7 +124,7 @@ def process_batch(
             rows=pin_vectors,
         )
 
-    return pc_success, spb_success
+    return pc_success, spb_success, len(pins)
 
 
 def should_stop(is_premium: bool, is_top: bool) -> Tuple[bool, bool, bool]:
@@ -156,12 +172,12 @@ def main(from_pinterest: bool) -> None:
                 output_pins.append(pin)
 
             if len(images) == len(output_pins) == BATCH_SIZE or n == len(input_pins):
-                pc_success, spb_success = process_batch(output_pins, images)
+                pc_success, spb_success, n_pins = process_batch(output_pins, images)
                 n_pc_success += int(pc_success)
                 n_spb_success += int(spb_success)
 
                 if pc_success and spb_success:
-                    n_success += len(images)
+                    n_success += n_pins
 
                 batch_ix += 1
                 output_pins, images = [], []
