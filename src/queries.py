@@ -38,20 +38,20 @@ def make_supabase_pin_query(
     is_top: bool = False,
 ) -> str:
     if is_premium:
-        users_cte = _get_premium_users_cte()
+        users_cte = f"{_get_premium_users_cte()}, "
         join_clause = "INNER JOIN users USING (user_id)"
     elif is_top:
-        users_cte = _get_top_users_cte()
+        users_cte = f"{_get_top_users_cte()}, "
         join_clause = "INNER JOIN users USING (user_id)"
     else:
-        users_cte = ""
+        users_cte = None
         join_clause = ""
 
     if from_pinterest:
         return f"""
         WITH
         {users_cte}
-        , {_get_pinterest_pins_cte()}
+        {_get_pinterest_pins_cte()}
         SELECT pins.*
         FROM pins
         {join_clause}
@@ -61,7 +61,7 @@ def make_supabase_pin_query(
         query = f"""
         WITH 
         {users_cte}
-        , {_get_pins_cte()}
+        {_get_pins_cte()}
         SELECT * FROM remaining_pins
         """
 
