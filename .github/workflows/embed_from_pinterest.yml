@@ -3,7 +3,7 @@ name: Embed from Pinterest
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */12 * * *'
+    - cron: '0 0 * * *'
 
 jobs:
   embed-from-pinterest:
