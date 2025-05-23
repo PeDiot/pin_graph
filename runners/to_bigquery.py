@@ -6,11 +6,11 @@ sys.path.append("../")
 import src
 
 
-def get_last_created_at() -> str: 
+def get_last_created_at() -> str:
     query = src.queries.make_bigquery_last_date_query(
         table_id=src.enums.GCP_TABLE_ID_PINTEREST,
     )
-    
+
     result = bq_client.query(query).result()
 
     for row in result:

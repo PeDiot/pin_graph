@@ -1,7 +1,6 @@
 GCP_PROJECT_ID = "recove-450509"
 GCP_DATASET_ID = "supabase"
-GCP_TABLE_ID_BOARD = "board"
-GCP_TABLE_ID_PIN = "pin"
+GCP_TABLE_ID_BOARD_PIN = "board_pin"
 GCP_TABLE_ID_PIN_VECTOR = "pin_vector"
 GCP_TABLE_ID_PINTEREST = "pinterest"
 GCP_TABLE_ID_BOARD_RECOMMEND = "board_recommend"

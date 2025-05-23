@@ -1,4 +1,4 @@
-from typing import Dict, Optional, List
+from typing import Dict, List
 
 from .enums.bigquery import *
 from .enums.supabase import *
@@ -24,11 +24,11 @@ def make_bigquery_board_pin_query(n: int, index: int = 0) -> str:
     offset = int(index * n)
 
     return f"""
-    SELECT pinterest.user_id, board_pin.* EXCEPT (board_pin.pinterest_id)
+    SELECT pinterest.user_id, board_pin.* EXCEPT (pinterest_id)
     FROM `{GCP_PROJECT_ID}.{GCP_DATASET_ID}.{GCP_TABLE_ID_BOARD_PIN}` board_pin
     INNER JOIN `{GCP_PROJECT_ID}.{GCP_DATASET_ID}.{GCP_TABLE_ID_PINTEREST}` pinterest USING (pinterest_id)
     LEFT JOIN `{GCP_PROJECT_ID}.{GCP_DATASET_ID}.{GCP_TABLE_ID_PIN_VECTOR}` pin_vector
-        ON board_pin.id = pin_vector.pin_id
+        ON CONCAT(pinterest.user_id, board_pin.id) = pin_vector.id
     WHERE pin_vector.pin_id IS NULL
     LIMIT {n}
     OFFSET {offset};

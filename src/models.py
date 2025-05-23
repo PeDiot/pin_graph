@@ -2,6 +2,7 @@ from typing import Optional, List, Dict
 from dataclasses import dataclass
 
 from uuid import uuid4
+from datetime import datetime
 
 from .enums.supabase import (
     DEFAULT_RECOMMEND_BOARD_NAME,
@@ -31,7 +32,7 @@ class Pin:
     id: str
     created_at: str
     image_url: str
-    from_pinterest: bool
+    from_pinterest: bool = True
     board_name: Optional[str] = None
     title: Optional[str] = None
     point_id: Optional[str] = None
@@ -45,12 +46,16 @@ class Pin:
     def set_point_id(self, point_id: str):
         self.point_id = point_id
 
-    def to_supabase(self) -> Dict:
+    def to_bigquery(self) -> Dict:
         return {
+            "id": self.id,
+            "created_at": datetime.now().isoformat(),
+            "user_id": self.user_id,
             "board_id": self.board_id,
             "image_url": self.image_url,
             "title": self.title,
             "point_id": self.point_id,
+            "from_pinterest": self.from_pinterest,
         }
 
 
@@ -79,6 +84,13 @@ class PinVector:
     user_id: str
     pin_id: str
     point_id: str
+    created_at: Optional[str] = None
+
+    def __post_init__(self):
+        self.id = f"{self.user_id}{self.pin_id}"
+
+        if not self.created_at:
+            self.created_at = datetime.now().isoformat()
 
     def to_dict(self) -> Dict:
         return self.__dict__
@@ -89,4 +101,5 @@ class PinVector:
             user_id=data["user_id"],
             pin_id=data["pin_id"],
             point_id=data["point_id"],
+            created_at=data.get("created_at"),
         )

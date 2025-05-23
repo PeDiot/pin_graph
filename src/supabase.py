@@ -28,12 +28,7 @@ def get_rows(
 ) -> List[Dict]:
     offset = int(index * n)
 
-    query = (
-        client.table(table_id)
-        .select("*")
-        .limit(n)
-        .offset(offset)
-    )
+    query = client.table(table_id).select("*").limit(n).offset(offset)
 
     if created_at:
         query = query.gte("created_at", created_at)
