@@ -29,12 +29,15 @@ class Board:
     def to_dict(self) -> Dict:
         return self.__dict__
 
+    def reset_created_at(self):
+        self.created_at = datetime.now().isoformat()
+
 
 @dataclass
 class Pin:
+    id: str
     user_id: str
     board_id: str
-    id: str
     created_at: str
     image_url: str
     from_pinterest: bool = True
@@ -51,8 +54,11 @@ class Pin:
     def set_point_id(self, point_id: str):
         self.point_id = point_id
 
-    def set_created_at(self):
+    def reset_created_at(self):
         self.created_at = datetime.now().isoformat()
+
+    def reset_id(self):
+        self.id = str(uuid4())
 
     def to_bigquery(self) -> Dict:
         return {

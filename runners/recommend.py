@@ -43,12 +43,10 @@ def fetch_reference_vectors(user_id: str) -> Iterable:
     }
 
     query = src.queries.make_pin_vector_query(is_new=True, **query_args)
-
     response = bq_client.query(query).result()
 
     if response.total_rows == 0:
         query = src.queries.make_pin_vector_query(is_new=False, **query_args)
-
         response = bq_client.query(query).result()
 
     return response
@@ -122,7 +120,7 @@ def process_user(
         rows=pins,
         field_ids=["board_id", "image_url"],
     )
-    
+
     return len(pins), n_inserted
 
 
@@ -160,7 +158,7 @@ def main():
                 pc_kwargs=pc_kwargs,
                 postprocess_kwargs=postprocess_kwargs,
             )
-            
+
             n += n_
             n_inserted += n_inserted_
             success_rate = n_inserted / n if n > 0 else -1
@@ -174,7 +172,7 @@ def main():
             )
 
             user_ix += 1
-            
+
 
 if __name__ == "__main__":
     main()

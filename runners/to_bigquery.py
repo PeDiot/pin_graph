@@ -34,7 +34,7 @@ def main() -> None:
     while True:
         rows = src.supabase.get_rows(
             client=spb_client,
-            table_id=src.enums.GCP_TABLE_ID_PINTEREST,
+            table_id=src.enums.SUPABASE_TABLE_ID_PINTEREST,
             n=src.enums.SUPABASE_BATCH_SIZE,
             index=index,
             created_at=last_created_at,

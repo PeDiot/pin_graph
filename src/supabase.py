@@ -45,21 +45,15 @@ def execute_rpc(
     return client.rpc(fn, params).execute()
 
 
-@execute_with_retry()
 def insert(
     client: Client,
     table_id: str,
     rows: List[Dict],
 ) -> bool:
     try:
-        response = (
-            client.table(table_id)
-            .upsert(
-                json=rows,
-                ignore_duplicates=True,
-            )
-            .execute()
-        )
+        response = client.table(table_id).upsert(json=rows).execute()
+
+        print(response)
 
         return len(response.data) > 0
 

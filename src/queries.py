@@ -123,3 +123,23 @@ def make_recommend_image_urls_query(board_id: str) -> str:
     FROM `{GCP_PROJECT_ID}.{GCP_DATASET_ID_SUPABASE}.{GCP_TABLE_ID_PIN_RECOMMEND}`
     WHERE board_id = '{board_id}';
     """
+
+
+def make_insert_board_query() -> str:
+    return f"""
+    SELECT board.* 
+    FROM `{GCP_PROJECT_ID}.{GCP_DATASET_ID_SUPABASE}.{GCP_TABLE_ID_BOARD_RECOMMEND}` board
+    LEFT JOIN `{GCP_PROJECT_ID}.{GCP_DATASET_ID_SUPABASE}.{GCP_TABLE_ID_PIN_INSERTED}` inserted
+        USING(id)
+    WHERE inserted.id IS NULL;
+    """
+
+
+def make_insert_pin_query() -> str:
+    return f"""
+    SELECT pin.* 
+    FROM `{GCP_PROJECT_ID}.{GCP_DATASET_ID_SUPABASE}.{GCP_TABLE_ID_PIN_RECOMMEND}` pin
+    LEFT JOIN `{GCP_PROJECT_ID}.{GCP_DATASET_ID_SUPABASE}.{GCP_TABLE_ID_PIN_INSERTED}` inserted
+        USING(id)
+    WHERE inserted.id IS NULL;
+    """

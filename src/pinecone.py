@@ -73,7 +73,8 @@ def postprocess_matches(
 
         pin.set_point_id(match.id)
         pin.set_board_id(board_id)
-        pin.set_created_at()
+        pin.reset_created_at()
+        pin.reset_id()
 
         pins.append(pin.to_bigquery())
         score_list.append(score)
