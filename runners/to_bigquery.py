@@ -7,7 +7,7 @@ import src
 
 
 def get_last_created_at() -> str:
-    query = src.queries.make_bigquery_last_date_query(
+    query = src.queries.make_last_date_query(
         table_id=src.enums.GCP_TABLE_ID_PINTEREST,
     )
 
@@ -29,7 +29,6 @@ def main() -> None:
     )
 
     last_created_at = get_last_created_at()
-
     index, n_success, n_rows, n_inserted = 0, 0, 0, 0
 
     while True:
@@ -46,10 +45,10 @@ def main() -> None:
 
         n, success = src.bigquery.insert_unique(
             client=bq_client,
-            dataset_id=src.enums.GCP_DATASET_ID,
+            dataset_id=src.enums.GCP_DATASET_ID_SUPABASE,
             table_id=src.enums.GCP_TABLE_ID_PINTEREST,
             rows=rows,
-            unique_field="user_id",
+            field_ids=["user_id"],
         )
 
         index += 1

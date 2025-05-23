@@ -27,7 +27,7 @@ def initialize_clients() -> Tuple:
 
 
 def fetch_pins() -> Iterable:
-    query = src.queries.make_bigquery_board_pin_query(
+    query = src.queries.make_board_pin_query(
         n=src.enums.supabase.SUPABASE_BATCH_SIZE,
     )
 
@@ -80,10 +80,10 @@ def process_batch(
     if pc_success:
         num_inserted, bq_success = src.bigquery.insert_unique(
             client=bq_client,
-            dataset_id=src.enums.bigquery.GCP_DATASET_ID,
+            dataset_id=src.enums.bigquery.GCP_DATASET_ID_SUPABASE,
             table_id=src.enums.bigquery.GCP_TABLE_ID_PIN_VECTOR,
             rows=pin_vectors,
-            unique_field="id",
+            field_ids=["id"],
         )
 
     return pc_success, bq_success, num_inserted

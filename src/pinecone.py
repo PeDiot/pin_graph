@@ -50,7 +50,7 @@ def postprocess_matches(
     min_score: float,
     max_score: float,
     image_urls: List[str],
-) -> Tuple[List[Pin], List[str]]:
+) -> Tuple[List[Dict], List[str]]:
     pins, score_list = [], []
 
     for match in matches:
@@ -73,9 +73,10 @@ def postprocess_matches(
 
         pin.set_point_id(match.id)
         pin.set_board_id(board_id)
-        score_list.append(score)
+        pin.set_created_at()
 
-        pins.append(pin.to_supabase())
+        pins.append(pin.to_bigquery())
+        score_list.append(score)
         image_urls.append(pin.image_url)
 
         if len(pins) == n:

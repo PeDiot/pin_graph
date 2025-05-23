@@ -16,10 +16,15 @@ class Board:
     name: str = DEFAULT_RECOMMEND_BOARD_NAME
     description: str = DEFAULT_RECOMMEND_BOARD_DESCRIPTION
     id: Optional[str] = None
+    created_at: Optional[str] = None
+    from_pinterest: bool = False
 
     def __post_init__(self):
         if not self.id:
             self.id = str(uuid4())
+
+        if not self.created_at:
+            self.created_at = datetime.now().isoformat()
 
     def to_dict(self) -> Dict:
         return self.__dict__
@@ -46,11 +51,13 @@ class Pin:
     def set_point_id(self, point_id: str):
         self.point_id = point_id
 
+    def set_created_at(self):
+        self.created_at = datetime.now().isoformat()
+
     def to_bigquery(self) -> Dict:
         return {
             "id": self.id,
             "created_at": datetime.now().isoformat(),
-            "user_id": self.user_id,
             "board_id": self.board_id,
             "image_url": self.image_url,
             "title": self.title,
