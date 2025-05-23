@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 from supabase import create_client, Client
 from supabase.lib.client_options import ClientOptions
 
@@ -19,12 +19,26 @@ def init_client(url: str, key: str, schema: str = "public") -> Client:
 
 
 @execute_with_retry()
-def get_rows(client: Client, table_id: str, n: int, index: int) -> List[Dict]:
+def get_rows(
+    client: Client,
+    table_id: str,
+    n: int,
+    index: int,
+    created_at: Optional[str] = None,
+) -> List[Dict]:
     offset = int(index * n)
 
-    response = client.table(table_id).select("*").limit(n).offset(offset).execute()
+    query = (
+        client.table(table_id)
+        .select("*")
+        .limit(n)
+        .offset(offset)
+    )
 
-    return response.data
+    if created_at:
+        query = query.gte("created_at", created_at)
+
+    return query.execute().data
 
 
 @execute_with_retry()
