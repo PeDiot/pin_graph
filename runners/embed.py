@@ -78,7 +78,7 @@ def process_batch(
     pins: List[src.models.Pin],
     images: List[Image.Image],
 ) -> Tuple[bool, bool, int]:
-    try: 
+    try:
         embeddings = encoder.encode(images)
 
     except Exception as e:
@@ -89,12 +89,12 @@ def process_batch(
                 embedding = encoder.encode([image])
                 pins_valid.append(pin)
                 embeddings.append(embedding)
-            
+
             except Exception as e:
                 continue
 
         pins = pins_valid
-        
+
     pin_vectors, vectors = [], []
 
     for pin, embedding in zip(pins, embeddings):
@@ -128,9 +128,7 @@ def process_batch(
 
 
 def should_stop(
-    is_premium: bool, 
-    is_top: bool,
-    input_pins: List[Dict]
+    is_premium: bool, is_top: bool, input_pins: List[Dict]
 ) -> Tuple[bool, bool, bool]:
     if len(input_pins) >= src.enums.supabase.SUPABASE_BATCH_SIZE:
         return is_premium, is_top, False
@@ -165,9 +163,7 @@ def main(from_pinterest: bool) -> None:
             is_top=is_top,
         )
 
-        is_premium, is_top, stop = should_stop(
-            is_premium, is_top, input_pins
-        )
+        is_premium, is_top, stop = should_stop(is_premium, is_top, input_pins)
 
         if stop:
             return

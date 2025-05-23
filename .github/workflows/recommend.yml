@@ -30,4 +30,4 @@ jobs:
       run: |
         docker run --rm \
           -e SECRETS_JSON="$SECRETS_JSON" \
-          pin-graph:recommend --is_top true 
+          pin-graph:recommend
