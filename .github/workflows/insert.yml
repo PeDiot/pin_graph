@@ -1,4 +1,4 @@
-name: Raw To Public
+name: BigQuery To Supabase
 
 on:
   workflow_dispatch:

@@ -1,4 +1,4 @@
-name: Recommend Top
+name: Recommend
 
 on:
   workflow_dispatch:
