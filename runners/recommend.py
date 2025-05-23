@@ -31,7 +31,6 @@ def initialize_clients() -> Tuple:
 
 def fetch_user_ids(is_new: bool) -> Iterable:
     query = src.queries.make_top_user_query(is_new)
-    query = "SELECT 'b4981c94-3813-431c-87e8-d99b77712dfd' AS user_id;"
 
     return bq_client.query(query).result()
 
@@ -175,10 +174,7 @@ def main():
             )
 
             user_ix += 1
-
-        return
-        batch_ix += 1
-
+            
 
 if __name__ == "__main__":
     main()
