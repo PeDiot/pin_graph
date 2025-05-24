@@ -4,7 +4,7 @@ import time
 from google.cloud import bigquery
 from google.oauth2 import service_account
 
-from .queries import make_bigquery_merge_query
+from .queries import make_merge_query
 
 
 def init_client(credentials_dict: Dict) -> bigquery.Client:
@@ -43,50 +43,92 @@ def insert_unique(
     dataset_id: str,
     table_id: str,
     rows: List[Dict],
-    unique_field: str,
+    field_ids: List[str],
 ) -> Tuple[int, bool]:
     try:
         if not rows:
-            return 0
-
-        project_id = client.project
-        temp_table_id = f"temp_{table_id}_{int(time.time())}"
-        temp_table_ref = f"{project_id}.{dataset_id}.{temp_table_id}"
-        target_table_ref = f"{project_id}.{dataset_id}.{table_id}"
-
-        target_table = client.get_table(target_table_ref)
-        schema = target_table.schema
-
-        temp_table = bigquery.Table(temp_table_ref, schema=schema)
-        client.create_table(temp_table, exists_ok=True)
-
-        errors = client.insert_rows_json(temp_table_ref, rows)
-        if errors:
-            client.delete_table(temp_table_ref)
-
             return 0, False
 
-        query = make_bigquery_merge_query(
+        project_id = client.project
+        target_table_ref = f"{project_id}.{dataset_id}.{table_id}"
+
+        temp_table_ref, temp_table_id = _create_temp_table(
+            client=client,
+            dataset_id=dataset_id,
+            table_id=table_id,
             target_table_ref=target_table_ref,
-            temp_table_ref=temp_table_ref,
-            unique_field=unique_field,
-            rows=rows,
         )
 
-        query_job = client.query(query)
-        result = query_job.result()
-        num_inserted = result.num_dml_affected_rows
+        if not insert(
+            client=client,
+            dataset_id=dataset_id,
+            table_id=temp_table_id,
+            rows=rows,
+        ):
+            _cleanup_temp_table(client, temp_table_ref)
+            return 0, False
 
-        client.delete_table(temp_table_ref)
+        fields = list(rows[0].keys())
+
+        num_inserted = _merge_tables(
+            client=client,
+            target_table_ref=target_table_ref,
+            temp_table_ref=temp_table_ref,
+            field_ids=field_ids,
+            fields=fields,
+        )
+
+        _cleanup_temp_table(client, temp_table_ref)
 
         return num_inserted, True
 
-    except Exception as e:
-        print(f"Error in insert_unique_rows: {str(e)}")
-
-        try:
-            client.delete_table(temp_table_ref)
-        except:
-            pass
+    except:
+        _cleanup_temp_table(client, temp_table_ref)
 
         return 0, False
+
+
+def _create_temp_table(
+    client: bigquery.Client,
+    dataset_id: str,
+    table_id: str,
+    target_table_ref: str,
+) -> Tuple[str, str]:
+    project_id = client.project
+    temp_table_id = f"temp_{table_id}_{int(time.time())}"
+    temp_table_ref = f"{project_id}.{dataset_id}.{temp_table_id}"
+
+    target_table = client.get_table(target_table_ref)
+    schema = target_table.schema
+
+    temp_table = bigquery.Table(temp_table_ref, schema=schema)
+    client.create_table(temp_table, exists_ok=True)
+
+    return temp_table_ref, temp_table_id
+
+
+def _merge_tables(
+    client: bigquery.Client,
+    target_table_ref: str,
+    temp_table_ref: str,
+    field_ids: List[str],
+    fields: List[str],
+) -> int:
+    query = make_merge_query(
+        target_table_ref=target_table_ref,
+        temp_table_ref=temp_table_ref,
+        field_ids=field_ids,
+        fields=fields,
+    )
+
+    query_job = client.query(query)
+    result = query_job.result()
+
+    return result.num_dml_affected_rows
+
+
+def _cleanup_temp_table(client: bigquery.Client, temp_table_ref: str) -> None:
+    try:
+        client.delete_table(temp_table_ref)
+    except:
+        pass
