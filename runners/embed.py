@@ -27,9 +27,7 @@ def initialize_clients() -> Tuple:
 
 
 def fetch_pins() -> Iterable:
-    query = src.queries.make_board_pin_query(
-        n=src.enums.supabase.SUPABASE_BATCH_SIZE,
-    )
+    query = src.queries.make_board_pin_query()
 
     return bq_client.query(query).result()
 
@@ -75,7 +73,7 @@ def process_batch(
         vectors=vectors,
     )
 
-    bq_success = False
+    bq_success, num_inserted = False, 0
 
     if pc_success:
         num_inserted, bq_success = src.bigquery.insert_unique(
@@ -95,48 +93,45 @@ def main() -> None:
     bq_client, pc_index = initialize_clients()
     encoder = src.encoder.FashionCLIPEncoder()
 
-    index, n, n_success = 0, 0, 0
+    n, n_success = 0, 0
     n_pc_success, n_bq_success, success_rate = 0, 0, 0
 
-    while True:
-        loader = fetch_pins()
-        if loader.total_rows == 0:
-            return
+    loader = fetch_pins()
+    
+    if loader.total_rows == 0:
+        return
 
-        batch_ix, output_pins, images = 0, [], []
-        loop = tqdm(iterable=loader, total=loader.total_rows)
+    batch_ix, output_pins, images = 0, [], []
+    loop = tqdm(iterable=loader, total=loader.total_rows)
 
-        for row in loop:
-            n += 1
-            pin = src.models.Pin(**dict(row))
-            image = src.utils.download_image_as_pil(pin.image_url)
+    for row in loop:
+        n += 1
+        pin = src.models.Pin(**dict(row))
+        image = src.utils.download_image_as_pil(pin.image_url)
 
-            if image:
-                images.append(image)
-                output_pins.append(pin)
+        if image:
+            images.append(image)
+            output_pins.append(pin)
 
-            if len(images) == len(output_pins) == BATCH_SIZE or n == loader.total_rows:
-                pc_success, bq_success, n_pins = process_batch(output_pins, images)
-                n_pc_success += int(pc_success)
-                n_bq_success += int(bq_success)
+        if len(images) == len(output_pins) == BATCH_SIZE or n == loader.total_rows:
+            pc_success, bq_success, n_pins = process_batch(output_pins, images)
+            n_pc_success += int(pc_success)
+            n_bq_success += int(bq_success)
 
-                if pc_success and bq_success:
-                    n_success += n_pins
+            if pc_success and bq_success:
+                n_success += n_pins
 
-                batch_ix += 1
-                output_pins, images = [], []
-                success_rate = n_success / n
+            batch_ix += 1
+            output_pins, images = [], []
+            success_rate = n_success / n
 
-            loop.set_description(
-                f"Index: {index} | "
-                f"Batch: {batch_ix} | "
-                f"Processed: {n} | "
-                f"Success rate: {success_rate:.2f} | "
-                f"Pinecone: {n_pc_success} | "
-                f"BigQuery: {n_bq_success}"
-            )
-
-        index += 1
+        loop.set_description(
+            f"Batch: {batch_ix} | "
+            f"Processed: {n} | "
+            f"Success rate: {success_rate:.2f} | "
+            f"Pinecone: {n_pc_success} | "
+            f"BigQuery: {n_bq_success}"
+        )
 
 
 if __name__ == "__main__":

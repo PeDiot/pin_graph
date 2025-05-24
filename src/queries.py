@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from .enums.bigquery import *
 from .enums.supabase import *
@@ -22,19 +22,21 @@ def make_merge_query(
     """
 
 
-def make_board_pin_query(n: int, index: int = 0) -> str:
-    offset = int(index * n)
-
-    return f"""
+def make_board_pin_query(n: Optional[int] = None, index: int = 0) -> str:
+    query = f"""
     SELECT pinterest.user_id, board_pin.* EXCEPT (pinterest_id)
     FROM `{GCP_PROJECT_ID}.{GCP_DATASET_ID_SUPABASE}.{GCP_TABLE_ID_BOARD_PIN}` board_pin
     INNER JOIN `{GCP_PROJECT_ID}.{GCP_DATASET_ID_SUPABASE}.{GCP_TABLE_ID_PINTEREST}` pinterest USING (pinterest_id)
     LEFT JOIN `{GCP_PROJECT_ID}.{GCP_DATASET_ID_SUPABASE}.{GCP_TABLE_ID_PIN_VECTOR}` pin_vector
         ON CONCAT(pinterest.user_id, board_pin.id) = pin_vector.id
-    WHERE pin_vector.pin_id IS NULL
-    LIMIT {n}
-    OFFSET {offset};
+    WHERE pin_vector.id IS NULL
     """
+
+    if n:
+        offset = int(index * n)
+        query += f"\nLIMIT {n} OFFSET {offset}"
+
+    return query
 
 
 def make_last_date_query(table_id: str) -> str:
