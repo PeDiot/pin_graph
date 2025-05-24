@@ -39,6 +39,10 @@ def insert_boards():
     return False
 
 
+def insert_pins():
+    ...
+
+
 def main() -> None:
     secrets = src.utils.load_secrets(env_var_name="SECRETS_JSON")
 
@@ -49,6 +53,9 @@ def main() -> None:
         url=secrets["SUPABASE_URL"],
         key=secrets["SUPABASE_SERVICE_ROLE_KEY"],
     )
+
+    success_boards = insert_boards()
+    success_pins = insert_pins()
 
 
 if __name__ == "__main__":

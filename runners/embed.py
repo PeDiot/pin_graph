@@ -97,7 +97,7 @@ def main() -> None:
     n_pc_success, n_bq_success, success_rate = 0, 0, 0
 
     loader = fetch_pins()
-    
+
     if loader.total_rows == 0:
         return
 
